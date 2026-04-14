@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d1f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Diary">
+<title>Daily Diary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Hind+Siliguri:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1f0f;
+    --surface: #122614;
+    --surface2: #162c18;
+    --card: #1a3320;
+    --card2: #1f3d25;
+    --accent: #6fcf5a;
+    --accent2: #4db840;
+    --accent-glow: rgba(111,207,90,0.25);
+    --text: #e8f5e3;
+    --text2: #7aaa72;
+    --red: #e05c5c;
+    --border: rgba(111,207,90,0.1);
+    --border2: rgba(111,207,90,0.2);
+    --radius: 18px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text);
+    min-height:100vh; max-width:480px; margin:0 auto; overflow-x:hidden;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background: radial-gradient(ellipse at 20% 20%,rgba(78,160,60,0.08) 0%,transparent 60%),
+                radial-gradient(ellipse at 80% 80%,rgba(40,100,30,0.1) 0%,transparent 60%);
+    pointer-events:none; z-index:0;
+  }
+  .screen { display:none; flex-direction:column; min-height:100vh; position:relative; z-index:1; }
+  .screen.active { display:flex; }
+
+  /* LOGIN */
+  #loginScreen, #setupScreen {
+    align-items:center; justify-content:center; padding:40px 32px;
+    background:radial-gradient(ellipse at center,#1a3320 0%,#0d1f0f 70%); min-height:100vh;
+  }
+  .login-logo { font-size:72px; margin-bottom:12px; filter:drop-shadow(0 4px 16px rgba(111,207,90,0.3)); }
+  .login-title { font-family:'Playfair Display',serif; font-size:32px; color:var(--accent); margin-bottom:6px; text-align:center; }
+  .login-sub { font-size:13px; color:var(--text2); margin-bottom:40px; text-align:center; }
+  .login-card { width:100%; background:var(--card); border:1px solid var(--border2); border-radius:24px; padding:28px 24px; box-shadow:0 16px 48px rgba(0,0,0,0.4); }
+  .lbl { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.7px; margin-bottom:8px; }
+  .pw-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:16px;
+    outline:none; margin-bottom:20px; transition:border-color 0.2s; letter-spacing:2px;
+  }
+  .pw-input:focus { border-color:var(--accent); }
+  .pw-input::placeholder { letter-spacing:0; color:var(--text2); opacity:0.5; }
+  .login-btn {
+    width:100%; padding:15px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border:none; border-radius:14px; color:#0d1f0f; font-family:'DM Sans',sans-serif;
+    font-size:16px; font-weight:700; cursor:pointer; transition:all 0.2s;
+    box-shadow:0 4px 20px var(--accent-glow);
+  }
+  .login-btn:active { transform:scale(0.97); }
+  .login-error { font-size:13px; color:var(--red); text-align:center; margin-top:14px; min-height:18px; }
+  .login-hint { font-size:11px; color:var(--text2); text-align:center; margin-top:14px; opacity:0.7; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+  /* HEADER */
+  .header {
+    padding:52px 24px 20px;
+    background:linear-gradient(180deg,var(--surface2) 0%,transparent 100%);
+    position:sticky; top:0; z-index:10;
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  }
+  .header-top { display:flex; justify-content:space-between; align-items:center; }
+  .app-title { font-family:'Playfair Display',serif; font-size:28px; color:var(--accent); letter-spacing:-0.5px; }
+  .header-date { font-size:12px; color:var(--text2); letter-spacing:0.5px; text-transform:uppercase; margin-top:4px; }
+  .header-btns { display:flex; gap:8px; }
+  .icon-btn {
+    width:44px; height:44px; border-radius:50%; border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:20px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+  }
+  .icon-btn:active { transform:scale(0.92); }
+
+  /* SEARCH */
+  .search-wrap { padding:12px 24px 0; position:relative; }
+  .search-input {
+    width:100%; background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:12px 16px 12px 42px; color:var(--text); font-family:'DM Sans',sans-serif;
+    font-size:14px; outline:none; transition:border-color 0.2s;
+  }
+  .search-input::placeholder { color:var(--text2); }
+  .search-input:focus { border-color:var(--accent); }
+  .search-icon { position:absolute; left:38px; top:50%; transform:translateY(-50%); color:var(--text2); font-size:16px; }
+
+  /* ENTRIES */
+  .entries-scroll { flex:1; overflow-y:auto; padding:16px 24px 100px; }
+  .empty-state { text-align:center; padding:60px 20px; animation:fadeIn 0.6s ease; }
+  .empty-icon { font-size:64px; margin-bottom:16px; opacity:0.4; }
+  .empty-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--text2); }
+  .empty-sub { font-size:13px; color:var(--text2); margin-top:8px; opacity:0.7; }
+  .entry-card {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px 20px; margin-bottom:14px; cursor:pointer; transition:all 0.2s;
+    animation:slideUp 0.4s ease; position:relative; overflow:hidden;
+  }
+  .entry-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); border-radius:3px 0 0 3px; }
+  .entry-card:active { transform:scale(0.98); background:var(--card2); }
+  .entry-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .entry-date-badge { font-size:11px; font-weight:500; color:var(--accent); background:rgba(111,207,90,0.1); padding:3px 10px; border-radius:20px; letter-spacing:0.3px; }
+  .entry-mood { font-size:20px; }
+  .entry-title { font-family:'Playfair Display',serif; font-size:17px; line-height:1.3; margin-bottom:6px; }
+  .entry-preview { font-size:13px; color:var(--text2); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .entry-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .tag { font-size:11px; background:rgba(111,207,90,0.08); border-radius:20px; padding:2px 9px; color:var(--text2); }
+
+  /* FAB */
+  .fab {
+    position:fixed; bottom:30px; right:24px; width:60px; height:60px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none;
+    color:#0d1f0f; font-size:28px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow:0 6px 24px var(--accent-glow); transition:all 0.25s; z-index:100;
+  }
+  .fab:active { transform:scale(0.9); }
+
+  /* EDITOR */
+  .editor-header { padding:52px 20px 16px; display:flex; align-items:center; gap:12px; background:var(--surface2); border-bottom:1px solid var(--border); }
+  .back-btn { width:40px; height:40px; border-radius:12px; background:var(--card); border:1px solid var(--border); color:var(--text); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .editor-title-area { flex:1; }
+  .editor-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.6px; }
+  .editor-date-show { font-size:13px; color:var(--accent); font-weight:500; margin-top:2px; }
+  .save-btn { background:var(--accent); color:#0d1f0f; border:none; border-radius:12px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; flex-shrink:0; }
+  .save-btn:active { transform:scale(0.95); }
+  .editor-body { flex:1; overflow-y:auto; padding:20px; }
+  .field-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:8px; }
+  .title-input { width:100%; background:transparent; border:none; font-family:'Playfair Display',serif; font-size:24px; color:var(--text); outline:none; line-height:1.3; resize:none; }
+  .title-input::placeholder { color:var(--text2); opacity:0.5; }
+  .divider { height:1px; background:var(--border); margin:18px 0; }
+  .mood-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .mood-btn { font-size:26px; width:48px; height:48px; border-radius:14px; border:2px solid transparent; background:var(--card); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+  .mood-btn.selected { border-color:var(--accent); background:rgba(111,207,90,0.12); transform:scale(1.1); }
+  .tag-input-wrap { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .tag-chip { background:rgba(111,207,90,0.12); border:1px solid rgba(111,207,90,0.3); border-radius:20px; padding:4px 10px; font-size:12px; color:var(--accent); display:flex; align-items:center; gap:4px; }
+  .tag-remove { cursor:pointer; font-size:14px; line-height:1; }
+  .tag-add-input { background:transparent; border:none; outline:none; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; min-width:80px; }
+  .tag-add-input::placeholder { color:var(--text2); }
+  .content-wrap { position:relative; }
+  .content-area { width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 16px 56px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.7; outline:none; resize:none; min-height:200px; transition:border-color 0.2s; }
+  .content-area:focus { border-color:rgba(111,207,90,0.4); }
+  .content-area::placeholder { color:var(--text2); opacity:0.5; }
+  .speech-btn { position:absolute; bottom:12px; right:12px; width:40px; height:40px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+  .speech-btn.listening { background:rgba(224,92,92,0.2); border-color:var(--red); color:var(--red); animation:pulse 1.2s infinite; }
+  .speech-status { font-size:12px; color:var(--text2); margin-top:8px; text-align:center; min-height:16px; }
+  .speech-status.active { color:var(--red); }
+  .word-count { font-size:11px; color:var(--text2); text-align:right; margin-top:6px; }
+  .no-speech { display:none; font-size:11px; color:var(--red); text-align:center; margin-top:6px; }
+  .lang-toggle-wrap { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .lang-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.6px; white-space:nowrap; }
+  .lang-toggle { display:flex; background:var(--surface2); border-radius:10px; padding:3px; border:1px solid var(--border); }
+  .lang-btn { flex:1; padding:6px 14px; border:none; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; background:transparent; color:var(--text2); transition:all 0.2s; }
+  .lang-btn.active { background:var(--accent); color:#0d1f0f; }
+  .content-area.bangla { font-family:'Hind Siliguri',Arial,sans-serif; font-size:16px; line-height:1.9; }
+
+  /* VIEW */
+  .view-header { padding:52px 20px 20px; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  .view-actions { display:flex; gap:8px; margin-left:auto; }
+  .view-body { flex:1; overflow-y:auto; padding:24px 20px 40px; }
+  .view-date { font-size:12px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; }
+  .view-title { font-family:'Playfair Display',serif; font-size:28px; line-height:1.2; margin:8px 0 16px; }
+  .view-mood-large { font-size:32px; }
+  .view-content { font-size:16px; line-height:1.8; color:rgba(232,245,227,0.9); white-space:pre-wrap; }
+  .view-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:20px; }
+
+  /* STATS */
+  .stats-scroll { flex:1; overflow-y:auto; padding:16px 24px 100px; }
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 16px; text-align:center; }
+  .stat-number { font-family:'Playfair Display',serif; font-size:36px; color:var(--accent); }
+  .stat-label { font-size:12px; color:var(--text2); margin-top:4px; }
+  .section-title { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:14px; color:var(--text); }
+  .mood-chart { display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; }
+  .mood-stat { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2); }
+  .streak-card { background:linear-gradient(135deg,rgba(111,207,90,0.15),rgba(77,184,64,0.05)); border:1px solid rgba(111,207,90,0.25); border-radius:var(--radius); padding:20px; text-align:center; margin-bottom:14px; }
+  .streak-num { font-family:'Playfair Display',serif; font-size:48px; color:var(--accent); }
+  .streak-label { font-size:13px; color:var(--text2); margin-top:4px; }
+  .heat-row { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
+  .heat-day { width:28px; height:28px; border-radius:6px; background:var(--card); border:1px solid var(--border); font-size:9px; display:flex; align-items:center; justify-content:center; color:var(--text2); }
+  .heat-day.has-entry { background:rgba(111,207,90,0.25); border-color:rgba(111,207,90,0.5); color:var(--accent); }
+
+  /* SETTINGS */
+  .settings-scroll { flex:1; overflow-y:auto; padding:16px 24px 100px; }
+  .settings-section { margin-bottom:28px; }
+  .settings-section-title { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.7px; margin-bottom:12px; padding-left:4px; }
+  .settings-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .settings-row { display:flex; align-items:center; gap:14px; padding:16px 18px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.2s; }
+  .settings-row:last-child { border-bottom:none; }
+  .settings-row:active { background:var(--card2); }
+  .settings-icon { font-size:22px; width:36px; text-align:center; }
+  .settings-info { flex:1; }
+  .settings-row-title { font-size:15px; color:var(--text); font-weight:500; }
+  .settings-row-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+  .settings-arrow { color:var(--text2); font-size:16px; }
+
+  /* MODALS */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:300; align-items:flex-end; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal-sheet { background:var(--card); border:1px solid var(--border2); border-radius:24px 24px 0 0; padding:28px 24px 40px; width:100%; max-width:480px; animation:slideUp 0.3s ease; }
+  .modal-title { font-family:'Playfair Display',serif; font-size:22px; margin-bottom:6px; }
+  .modal-sub { font-size:13px; color:var(--text2); margin-bottom:24px; }
+  .modal-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 16px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; outline:none; margin-bottom:14px; transition:border-color 0.2s; letter-spacing:1px; }
+  .modal-input:focus { border-color:var(--accent); }
+  .modal-input::placeholder { letter-spacing:0; color:var(--text2); opacity:0.5; }
+  .modal-btns { display:flex; gap:10px; margin-top:4px; }
+  .modal-btns button { flex:1; padding:13px; border-radius:12px; border:none; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; }
+  .modal-cancel { background:var(--surface2); color:var(--text); border:1px solid var(--border) !important; }
+  .modal-confirm { background:var(--accent); color:#0d1f0f; font-weight:700; }
+  .modal-error { font-size:12px; color:var(--red); margin-bottom:10px; min-height:16px; }
+
+  /* DIALOGS */
+  .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:300; align-items:center; justify-content:center; padding:24px; }
+  .overlay.show { display:flex; }
+  .dialog { background:var(--card); border:1px solid var(--border2); border-radius:var(--radius); padding:28px 24px; width:100%; max-width:320px; animation:slideUp 0.3s ease; }
+  .dialog h3 { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:8px; }
+  .dialog p { font-size:14px; color:var(--text2); margin-bottom:20px; line-height:1.5; }
+  .dialog-btns { display:flex; gap:10px; }
+  .dialog-btns button { flex:1; padding:12px; border-radius:12px; border:none; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; }
+  .btn-cancel { background:var(--surface2); color:var(--text); border:1px solid var(--border) !important; }
+  .btn-delete { background:var(--red); color:#fff; }
+  .btn-green { background:var(--accent); color:#0d1f0f; font-weight:700; }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:480px; background:rgba(13,31,15,0.96);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-top:1px solid var(--border); display:flex; justify-content:space-around;
+    padding:10px 0 20px; z-index:50;
+  }
+  .nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; cursor:pointer; color:var(--text2); transition:all 0.2s; font-family:'DM Sans',sans-serif; }
+  .nav-btn.active { color:var(--accent); }
+  .nav-icon { font-size:20px; }
+  .nav-label { font-size:10px; letter-spacing:0.3px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--card); border:1px solid var(--border2); color:var(--text); padding:12px 24px; border-radius:30px; font-size:13px; z-index:400; box-shadow:var(--shadow); animation:slideUp 0.3s ease; white-space:nowrap; }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(224,92,92,0.4)} 50%{box-shadow:0 0 0 8px rgba(224,92,92,0)} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="screen active">
+  <div class="login-logo">🌿</div>
+  <div class="login-title">Daily Diary</div>
+  <div class="login-sub">Your private space to reflect</div>
+  <div class="login-card">
+    <div class="lbl">Password</div>
+    <input class="pw-input" id="loginPassword" type="password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">🔓 Unlock Diary</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint" id="loginHint"></div>
+  </div>
+</div>
+
+<!-- SETUP PASSWORD -->
+<div id="setupScreen" class="screen">
+  <div class="login-logo">🔐</div>
+  <div class="login-title">Set Password</div>
+  <div class="login-sub">Create a password to protect your diary</div>
+  <div class="login-card">
+    <div class="lbl">New Password</div>
+    <input class="pw-input" id="setupPw1" type="password" placeholder="Choose a password (min 4 chars)">
+    <div class="lbl">Confirm Password</div>
+    <input class="pw-input" id="setupPw2" type="password" placeholder="Repeat password" onkeydown="if(event.key==='Enter')doSetup()">
+    <button class="login-btn" onclick="doSetup()">✅ Set Password & Start</button>
+    <div class="login-error" id="setupError"></div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="homeScreen" class="screen">
+  <div class="header">
+    <div class="header-top">
+      <div><div class="app-title">Daily Diary</div><div class="header-date" id="headerDate"></div></div>
+      <div class="header-btns">
+        <button class="icon-btn" onclick="openStats()">📊</button>
+        <button class="icon-btn" onclick="openSettings()">⚙️</button>
+      </div>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" placeholder="Search your entries…" oninput="filterEntries()">
+  </div>
+  <div class="entries-scroll" id="entriesList"></div>
+  <button class="fab" onclick="openEditor()">✏️</button>
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="showHome()"><span class="nav-icon">📖</span><span class="nav-label">Diary</span></button>
+    <button class="nav-btn" onclick="openStats()"><span class="nav-icon">📊</span><span class="nav-label">Insights</span></button>
+    <button class="nav-btn" onclick="openSettings()"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
+  </div>
+</div>
+
+<!-- EDITOR -->
+<div id="editorScreen" class="screen">
+  <div class="editor-header">
+    <button class="back-btn" onclick="closeEditor()">←</button>
+    <div class="editor-title-area"><div class="editor-label">Entry</div><div class="editor-date-show" id="editorDateShow"></div></div>
+    <button class="save-btn" onclick="saveEntry()">Save</button>
+  </div>
+  <div class="editor-body">
+    <div class="field-label">Title</div>
+    <textarea class="title-input" id="entryTitle" placeholder="What's today about?" rows="2"></textarea>
+    <div class="divider"></div>
+    <div class="field-label">Mood</div>
+    <div class="mood-row">
+      <button class="mood-btn" data-mood="😊" onclick="selectMood(this)">😊</button>
+      <button class="mood-btn" data-mood="😄" onclick="selectMood(this)">😄</button>
+      <button class="mood-btn" data-mood="😐" onclick="selectMood(this)">😐</button>
+      <button class="mood-btn" data-mood="😔" onclick="selectMood(this)">😔</button>
+      <button class="mood-btn" data-mood="😡" onclick="selectMood(this)">😡</button>
+      <button class="mood-btn" data-mood="😴" onclick="selectMood(this)">😴</button>
+      <button class="mood-btn" data-mood="🤩" onclick="selectMood(this)">🤩</button>
+      <button class="mood-btn" data-mood="🥰" onclick="selectMood(this)">🥰</button>
+    </div>
+    <div class="divider"></div>
+    <div class="field-label">Tags</div>
+    <div class="tag-input-wrap" id="tagWrap"><input class="tag-add-input" id="tagInput" placeholder="Add tag, press Enter" onkeydown="handleTagKey(event)"></div>
+    <div class="divider"></div>
+    <div class="field-label">Your Thoughts</div>
+    <div class="lang-toggle-wrap">
+      <span class="lang-label">Voice Language:</span>
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="langBn" onclick="setLang('bn-BD')">বাংলা</button>
+        <button class="lang-btn" id="langEn" onclick="setLang('en-US')">English</button>
+      </div>
+    </div>
+    <div class="content-wrap">
+      <textarea class="content-area" id="entryContent" placeholder="এখানে লিখুন… আজকে কী হলো?" rows="10" oninput="updateWordCount()"></textarea>
+      <button class="speech-btn" id="speechBtn" onclick="toggleSpeech()">🎤</button>
+    </div>
+    <div class="speech-status" id="speechStatus"></div>
+    <div class="no-speech" id="noSpeech">Speech not supported on this browser</div>
+    <div class="word-count" id="wordCount">০ শব্দ</div>
+  </div>
+</div>
+
+<!-- VIEW -->
+<div id="viewScreen" class="screen">
+  <div class="view-header">
+    <button class="back-btn" onclick="closeView()">←</button>
+    <div style="flex:1"></div>
+    <div class="view-actions">
+      <button class="icon-btn" onclick="editCurrentEntry()">✏️</button>
+      <button class="icon-btn" onclick="confirmDelete()" style="color:var(--red)">🗑️</button>
+    </div>
+  </div>
+  <div class="view-body" id="viewBody"></div>
+</div>
+
+<!-- STATS -->
+<div id="statsScreen" class="screen">
+  <div class="header">
+    <div class="header-top">
+      <div><div class="app-title">Insights</div><div class="header-date">Your journey in numbers</div></div>
+      <button class="icon-btn" onclick="showHome()">✕</button>
+    </div>
+  </div>
+  <div class="stats-scroll" id="statsBody"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsScreen" class="screen">
+  <div class="header">
+    <div class="header-top">
+      <div><div class="app-title">Settings</div><div class="header-date">Backup & Security</div></div>
+      <button class="icon-btn" onclick="showHome()">✕</button>
+    </div>
+  </div>
+  <div class="settings-scroll">
+    <div class="settings-section">
+      <div class="settings-section-title">🔒 Security</div>
+      <div class="settings-card">
+        <div class="settings-row" onclick="openChangePw()">
+          <div class="settings-icon">🔑</div>
+          <div class="settings-info"><div class="settings-row-title">Change Password</div><div class="settings-row-sub">Update your diary password</div></div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row" onclick="lockDiary()">
+          <div class="settings-icon">🔒</div>
+          <div class="settings-info"><div class="settings-row-title">Lock Diary</div><div class="settings-row-sub">Return to login screen now</div></div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">💾 Backup & Restore</div>
+      <div class="settings-card">
+        <div class="settings-row" onclick="exportBackup()">
+          <div class="settings-icon">⬇️</div>
+          <div class="settings-info"><div class="settings-row-title">Export Backup (.json)</div><div class="settings-row-sub">Download all entries — use for restore</div></div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row" onclick="document.getElementById('importFile').click()">
+          <div class="settings-icon">⬆️</div>
+          <div class="settings-info"><div class="settings-row-title">Restore from Backup</div><div class="settings-row-sub">Import a previously exported .json file</div></div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(event)">
+        <div class="settings-row" onclick="exportAsText()">
+          <div class="settings-icon">📄</div>
+          <div class="settings-info"><div class="settings-row-title">Export as Text (.txt)</div><div class="settings-row-sub">Human-readable file of all entries</div></div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">📊 Storage Info</div>
+      <div class="settings-card">
+        <div class="settings-row" style="cursor:default">
+          <div class="settings-icon">📝</div>
+          <div class="settings-info">
+            <div class="settings-row-title" id="settingsEntryCount">0 Entries</div>
+            <div class="settings-row-sub" id="settingsWordCount">0 words written</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">⚠️ Danger Zone</div>
+      <div class="settings-card">
+        <div class="settings-row" onclick="confirmClearAll()">
+          <div class="settings-icon">🗑️</div>
+          <div class="settings-info"><div class="settings-row-title" style="color:var(--red)">Clear All Entries</div><div class="settings-row-sub">Permanently delete everything</div></div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="overlay" id="confirmOverlay">
+  <div class="dialog">
+    <h3>Delete Entry?</h3>
+    <p>This entry will be permanently removed from your diary.</p>
+    <div class="dialog-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-delete" onclick="deleteCurrentEntry()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR ALL CONFIRM -->
+<div class="overlay" id="clearAllOverlay">
+  <div class="dialog">
+    <h3>Clear Everything?</h3>
+    <p>All diary entries will be permanently deleted. Export a backup first!</p>
+    <div class="dialog-btns">
+      <button class="btn-cancel" onclick="document.getElementById('clearAllOverlay').classList.remove('show')">Cancel</button>
+      <button class="btn-delete" onclick="clearAllEntries()">Delete All</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESTORE CONFIRM -->
+<div class="overlay" id="restoreOverlay">
+  <div class="dialog">
+    <h3>Restore Backup?</h3>
+    <p id="restoreMsg">Merge backup entries with your current diary?</p>
+    <div class="dialog-btns">
+      <button class="btn-cancel" onclick="document.getElementById('restoreOverlay').classList.remove('show')">Cancel</button>
+      <button class="btn-green" onclick="confirmRestore()">Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="changePwModal">
+  <div class="modal-sheet">
+    <div class="modal-title">Change Password</div>
+    <div class="modal-sub">Enter your current password, then set a new one.</div>
+    <input class="modal-input" id="cpCurrent" type="password" placeholder="Current password">
+    <input class="modal-input" id="cpNew" type="password" placeholder="New password (min 4 chars)">
+    <input class="modal-input" id="cpConfirm" type="password" placeholder="Confirm new password" onkeydown="if(event.key==='Enter')doChangePw()">
+    <div class="modal-error" id="cpError"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeChangePw()">Cancel</button>
+      <button class="modal-confirm" onclick="doChangePw()">Update</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ AUTH ═══
+const HASH_KEY = 'diaryPwHash';
+let pendingRestoreData = null;
+
+function hashPw(pw) {
+  let h = 5381;
+  for (let i = 0; i < pw.length; i++) h = ((h << 5) + h) ^ pw.charCodeAt(i);
+  return (h >>> 0).toString(36) + pw.length.toString(36) + 'dd2';
+}
+function hasPw() { return !!localStorage.getItem(HASH_KEY); }
+function checkPw(pw) { return localStorage.getItem(HASH_KEY) === hashPw(pw); }
+function setPw(pw) { localStorage.setItem(HASH_KEY, hashPw(pw)); }
+
+window.addEventListener('load', () => {
+  if (!hasPw()) {
+    showScreen('setupScreen');
+    setTimeout(() => document.getElementById('setupPw1').focus(), 300);
+  } else {
+    document.getElementById('loginHint').textContent = 'Forgot password? Restore from backup file or clear browser data.';
+    showScreen('loginScreen');
+    setTimeout(() => document.getElementById('loginPassword').focus(), 300);
+  }
+});
+
+function doLogin() {
+  const pw = document.getElementById('loginPassword').value;
+  if (!pw) { document.getElementById('loginError').textContent = 'Please enter your password.'; return; }
+  if (checkPw(pw)) {
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('loginPassword').value = '';
+    initApp(); showScreen('homeScreen');
+  } else {
+    document.getElementById('loginError').textContent = '❌ Wrong password. Try again.';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPassword').focus();
+  }
+}
+
+function doSetup() {
+  const p1 = document.getElementById('setupPw1').value;
+  const p2 = document.getElementById('setupPw2').value;
+  if (!p1) { document.getElementById('setupError').textContent = 'Password cannot be empty.'; return; }
+  if (p1.length < 4) { document.getElementById('setupError').textContent = 'Minimum 4 characters required.'; return; }
+  if (p1 !== p2) { document.getElementById('setupError').textContent = '❌ Passwords do not match.'; return; }
+  setPw(p1);
+  document.getElementById('setupPw1').value = '';
+  document.getElementById('setupPw2').value = '';
+  initApp(); showScreen('homeScreen');
+  showToast('Password set! Welcome 🌿');
+}
+
+function lockDiary() { showScreen('loginScreen'); setTimeout(() => document.getElementById('loginPassword').focus(), 300); }
+
+// ═══ STATE ═══
+let entries = [], currentEntry = null, selectedMood = '', currentTags = [];
+let recognition = null, isListening = false, editingId = null;
+
+function initApp() {
+  entries = JSON.parse(localStorage.getItem('diaryEntries') || '[]');
+  document.getElementById('headerDate').textContent = formatDateLong(new Date());
+  document.getElementById('editorDateShow').textContent = formatDateLong(new Date());
+  renderEntries(entries); initSpeech();
+}
+
+// ═══ DATES ═══
+function formatDateLong(d) { return d.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
+function formatDateShort(d) { return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function formatTime(d) { return new Date(d).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); }
+
+// ═══ ENTRIES ═══
+function renderEntries(list) {
+  const el = document.getElementById('entriesList');
+  if (!list.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🌿</div><div class="empty-title">Your diary is empty</div><div class="empty-sub">Tap ✏️ to write your first entry</div></div>`; return; }
+  const sorted = [...list].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  el.innerHTML = sorted.map(e=>`
+    <div class="entry-card" onclick="viewEntry('${e.id}')">
+      <div class="entry-card-header">
+        <div class="entry-date-badge">${formatDateShort(e.timestamp)} · ${formatTime(e.timestamp)}</div>
+        <div class="entry-mood">${e.mood||''}</div>
+      </div>
+      <div class="entry-title">${e.title||'Untitled'}</div>
+      <div class="entry-preview">${e.content||''}</div>
+      ${e.tags&&e.tags.length?`<div class="entry-tags">${e.tags.map(t=>`<span class="tag">#${t}</span>`).join('')}</div>`:''}
+    </div>`).join('');
+}
+function filterEntries() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  if (!q) { renderEntries(entries); return; }
+  renderEntries(entries.filter(e=>(e.title||'').toLowerCase().includes(q)||(e.content||'').toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q))));
+}
+function saveEntries() { localStorage.setItem('diaryEntries', JSON.stringify(entries)); }
+
+// ═══ EDITOR ═══
+function openEditor(id=null) {
+  editingId=id; selectedMood=''; currentTags=[];
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+  ['entryTitle','entryContent'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('wordCount').textContent='0 words';
+  document.getElementById('speechStatus').textContent='';
+  renderTagsUI();
+  if (id) {
+    const e=entries.find(x=>x.id===id);
+    if(e){ document.getElementById('entryTitle').value=e.title||''; document.getElementById('entryContent').value=e.content||''; selectedMood=e.mood||''; currentTags=[...(e.tags||[])]; document.querySelectorAll('.mood-btn').forEach(b=>{if(b.dataset.mood===selectedMood)b.classList.add('selected');}); renderTagsUI(); updateWordCount(); }
+  }
+  document.getElementById('editorDateShow').textContent=formatDateLong(new Date());
+  showScreen('editorScreen');
+}
+function closeEditor() { showScreen('homeScreen'); stopSpeech(); }
+function saveEntry() {
+  const title=document.getElementById('entryTitle').value.trim();
+  const content=document.getElementById('entryContent').value.trim();
+  if(!title&&!content){showToast('Please write something first ✍️');return;}
+  if(editingId){ const idx=entries.findIndex(e=>e.id===editingId); if(idx!==-1) entries[idx]={...entries[idx],title,content,mood:selectedMood,tags:currentTags,updatedAt:new Date().toISOString()}; }
+  else entries.unshift({id:Date.now().toString(),title,content,mood:selectedMood,tags:currentTags,timestamp:new Date().toISOString()});
+  saveEntries(); renderEntries(entries); showToast(editingId?'Entry updated ✓':'Entry saved ✓'); closeEditor();
+}
+
+// ═══ MOOD & TAGS ═══
+function selectMood(btn){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');selectedMood=btn.dataset.mood;}
+function handleTagKey(e){if(e.key==='Enter'||e.key===','){e.preventDefault();const val=document.getElementById('tagInput').value.trim().replace(/^#/,'');if(val&&!currentTags.includes(val)){currentTags.push(val);renderTagsUI();}document.getElementById('tagInput').value='';}}
+function removeTag(t){currentTags=currentTags.filter(x=>x!==t);renderTagsUI();}
+function renderTagsUI(){const wrap=document.getElementById('tagWrap');const input=document.getElementById('tagInput');wrap.innerHTML='';currentTags.forEach(t=>{const c=document.createElement('div');c.className='tag-chip';c.innerHTML=`#${t}<span class="tag-remove" onclick="removeTag('${t}')">×</span>`;wrap.appendChild(c);});wrap.appendChild(input);}
+function updateWordCount(){const t=document.getElementById('entryContent').value.trim();const n=t?t.split(/\s+/).length:0;const isBn=currentLang==='bn-BD';document.getElementById('wordCount').textContent=isBn?`${n} শব্দ`:`${n} word${n!==1?'s':''}`;}
+
+// ═══ SPEECH ═══
+let currentLang = 'bn-BD';
+
+function setLang(lang) {
+  currentLang = lang;
+  if (isListening) { stopSpeech(); }
+  document.getElementById('langBn').classList.toggle('active', lang === 'bn-BD');
+  document.getElementById('langEn').classList.toggle('active', lang === 'en-US');
+  const area = document.getElementById('entryContent');
+  if (lang === 'bn-BD') {
+    area.classList.add('bangla');
+    area.placeholder = 'এখানে লিখুন… আজকে কী হলো? কেমন লাগছে?';
+  } else {
+    area.classList.remove('bangla');
+    area.placeholder = 'Write freely… what happened today?';
+  }
+  // reinit recognition with new lang
+  initSpeech();
+}
+
+function initSpeech(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('noSpeech').style.display='block';document.getElementById('speechBtn').style.display='none';return;}
+  // stop any existing
+  try { recognition && recognition.abort(); } catch(e) {}
+  recognition=new SR();
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.lang=currentLang;
+  let base='';
+  recognition.onstart=()=>{
+    isListening=true;
+    document.getElementById('speechBtn').classList.add('listening');
+    const isBn = currentLang === 'bn-BD';
+    document.getElementById('speechStatus').textContent = isBn ? '🔴 শুনছি… বলুন' : '🔴 Listening… speak now';
+    document.getElementById('speechStatus').classList.add('active');
+    base=document.getElementById('entryContent').value;
+  };
+  recognition.onresult=ev=>{
+    let interim='',final='';
+    for(let j=ev.resultIndex;j<ev.results.length;j++){
+      if(ev.results[j].isFinal) final+=ev.results[j][0].transcript+' ';
+      else interim+=ev.results[j][0].transcript;
+    }
+    document.getElementById('entryContent').value=base+final+interim;
+    if(final) base=base+final;
+    updateWordCount();
+  };
+  recognition.onerror=e=>{
+    if(e.error==='not-allowed') showToast('মাইক্রোফোন অনুমতি দিন / Microphone access denied');
+    else if(e.error==='network') showToast('নেটওয়ার্ক সমস্যা — ইন্টারনেট চেক করুন');
+    stopSpeech();
+  };
+  recognition.onend=()=>{if(isListening)stopSpeech();};
+}
+function toggleSpeech(){if(!recognition)return;isListening?stopSpeech():startSpeech();}
+function startSpeech(){try{recognition.start();}catch(e){}}
+function stopSpeech(){isListening=false;document.getElementById('speechBtn').classList.remove('listening');document.getElementById('speechStatus').textContent='';document.getElementById('speechStatus').classList.remove('active');try{recognition&&recognition.stop();}catch(e){}}
+
+// ═══ VIEW ═══
+function viewEntry(id){currentEntry=entries.find(e=>e.id===id);if(!currentEntry)return;document.getElementById('viewBody').innerHTML=`<div class="view-date">${formatDateShort(currentEntry.timestamp)} · ${formatTime(currentEntry.timestamp)}</div><div class="view-title">${currentEntry.title||'Untitled'}</div><div style="margin-bottom:20px">${currentEntry.mood?`<span style="font-size:32px">${currentEntry.mood}</span>`:''}</div><div class="view-content">${(currentEntry.content||'').replace(/</g,'&lt;')}</div>${currentEntry.tags&&currentEntry.tags.length?`<div class="view-tags">${currentEntry.tags.map(t=>`<span class="tag">#${t}</span>`).join('')}</div>`:''}`; showScreen('viewScreen');}
+function closeView(){showScreen('homeScreen');}
+function editCurrentEntry(){if(currentEntry)openEditor(currentEntry.id);}
+function confirmDelete(){document.getElementById('confirmOverlay').classList.add('show');}
+function closeConfirm(){document.getElementById('confirmOverlay').classList.remove('show');}
+function deleteCurrentEntry(){if(!currentEntry)return;entries=entries.filter(e=>e.id!==currentEntry.id);saveEntries();renderEntries(entries);closeConfirm();showToast('Entry deleted');closeView();}
+
+// ═══ STATS ═══
+function openStats(){renderStats();showScreen('statsScreen');}
+function renderStats(){
+  const total=entries.length;
+  const words=entries.reduce((s,e)=>s+((e.content||'').trim()?(e.content.trim().split(/\s+/).length):0),0);
+  const mc={};entries.forEach(e=>{if(e.mood)mc[e.mood]=(mc[e.mood]||0)+1;});
+  const top=Object.entries(mc).sort((a,b)=>b[1]-a[1])[0];
+  const ds=new Set(entries.map(e=>new Date(e.timestamp).toDateString()));
+  let streak=0,d=new Date();while(ds.has(d.toDateString())){streak++;d.setDate(d.getDate()-1);}
+  const hd=[];for(let i=6;i>=0;i--){const dd=new Date();dd.setDate(dd.getDate()-i);hd.push({date:dd,has:ds.has(dd.toDateString())});}
+  document.getElementById('statsBody').innerHTML=`
+    <div class="stats-grid"><div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">Total Entries</div></div><div class="stat-card"><div class="stat-number">${words.toLocaleString()}</div><div class="stat-label">Words Written</div></div></div>
+    <div class="streak-card"><div class="streak-num">🔥 ${streak}</div><div class="streak-label">Day Streak</div></div>
+    <div class="section-title">Last 7 Days</div>
+    <div class="heat-row">${hd.map(d=>`<div class="heat-day ${d.has?'has-entry':''}">${d.date.getDate()}</div>`).join('')}</div>
+    <div class="divider" style="margin:20px 0"></div>
+    <div class="section-title">Mood History</div>
+    <div class="mood-chart">${Object.entries(mc).sort((a,b)=>b[1]-a[1]).map(([m,c])=>`<div class="mood-stat">${m} <strong style="color:var(--text)">${c}</strong></div>`).join('')}</div>
+    ${top?`<div class="section-title">Most Common Mood</div><div style="font-size:48px;text-align:center;margin-bottom:8px">${top[0]}</div><div style="text-align:center;color:var(--text2);font-size:13px;margin-bottom:24px">${top[1]} time${top[1]!==1?'s':''}</div>`:''}`;
+}
+
+// ═══ SETTINGS ═══
+function openSettings(){
+  const t=entries.length, w=entries.reduce((s,e)=>s+((e.content||'').trim()?(e.content.trim().split(/\s+/).length):0),0);
+  document.getElementById('settingsEntryCount').textContent=`${t} Entr${t!==1?'ies':'y'}`;
+  document.getElementById('settingsWordCount').textContent=`${w.toLocaleString()} words written`;
+  showScreen('settingsScreen');
+}
+
+// change password
+function openChangePw(){['cpCurrent','cpNew','cpConfirm'].forEach(i=>document.getElementById(i).value='');document.getElementById('cpError').textContent='';document.getElementById('changePwModal').classList.add('show');}
+function closeChangePw(){document.getElementById('changePwModal').classList.remove('show');}
+function doChangePw(){
+  const cur=document.getElementById('cpCurrent').value, nw=document.getElementById('cpNew').value, cf=document.getElementById('cpConfirm').value;
+  if(!checkPw(cur)){document.getElementById('cpError').textContent='❌ Current password is wrong.';return;}
+  if(!nw||nw.length<4){document.getElementById('cpError').textContent='New password needs 4+ characters.';return;}
+  if(nw!==cf){document.getElementById('cpError').textContent='❌ Passwords do not match.';return;}
+  setPw(nw);closeChangePw();showToast('Password updated ✓');
+}
+
+// export JSON
+function exportBackup(){
+  const data={version:1,exportedAt:new Date().toISOString(),entries};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url;a.download=`daily-diary-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('Backup exported ✓');
+}
+
+// export text
+function exportAsText(){
+  if(!entries.length){showToast('No entries to export');return;}
+  const sorted=[...entries].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  let txt=`DAILY DIARY — Exported ${new Date().toLocaleDateString()}\n${'═'.repeat(50)}\n\n`;
+  sorted.forEach(e=>{txt+=`📅 ${formatDateShort(e.timestamp)} · ${formatTime(e.timestamp)}\n`;if(e.mood)txt+=`Mood: ${e.mood}\n`;txt+=`\n${e.title||'Untitled'}\n${'-'.repeat(30)}\n${e.content||''}\n`;if(e.tags&&e.tags.length)txt+=`\nTags: ${e.tags.map(t=>'#'+t).join(', ')}\n`;txt+=`\n${'─'.repeat(50)}\n\n`;});
+  const blob=new Blob([txt],{type:'text/plain'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url;a.download=`daily-diary-${new Date().toISOString().slice(0,10)}.txt`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('Text exported ✓');
+}
+
+// import backup
+function importBackup(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.entries||!Array.isArray(data.entries))throw new Error('bad');
+      pendingRestoreData=data.entries;
+      document.getElementById('restoreMsg').textContent=`Found ${data.entries.length} entries (exported ${data.exportedAt?new Date(data.exportedAt).toLocaleDateString():'unknown'}). Merge with your current diary?`;
+      document.getElementById('restoreOverlay').classList.add('show');
+    }catch(err){showToast('❌ Invalid backup file');}
+    event.target.value='';
+  };reader.readAsText(file);
+}
+function confirmRestore(){
+  if(!pendingRestoreData)return;
+  const existing=new Set(entries.map(e=>e.id));let added=0;
+  pendingRestoreData.forEach(e=>{if(!existing.has(e.id)){entries.push(e);added++;}});
+  saveEntries();renderEntries(entries);
+  document.getElementById('restoreOverlay').classList.remove('show');
+  pendingRestoreData=null;showToast(`Restored ${added} new entries ✓`);
+}
+
+// clear all
+function confirmClearAll(){document.getElementById('clearAllOverlay').classList.add('show');}
+function clearAllEntries(){entries=[];saveEntries();renderEntries(entries);document.getElementById('clearAllOverlay').classList.remove('show');showToast('All entries cleared');openSettings();}
+
+// ═══ NAV ═══
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function showHome(){showScreen('homeScreen');renderEntries(entries);}
+
+// ═══ TOAST ═══
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2300);}
+</script>
+</body>
+</html>
